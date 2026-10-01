@@ -1,0 +1,6 @@
+run composer on ubuntu using XAMPP
+/opt/lampp/bin/php /usr/local/bin/composer dump-autoload
+
+run artisan on ubuntu using XAMPP
+cd /opt/lampp/htdocs/project
+/opt/lampp/bin/php artisan make:controller test
