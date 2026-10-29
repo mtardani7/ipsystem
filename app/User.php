@@ -6,6 +6,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Auth;
 use App\UserLevel;
+use App\Masterlist;
 
 class User extends Authenticatable
 {
@@ -68,4 +69,9 @@ class User extends Authenticatable
 	{
 		return $this->hasOne('App\UserLevel','userid');
 	}
+
+  public function ownedDocuments()
+  {
+      return $this->hasMany(Masterlist::class, 'OWNER_ID', 'id');
+  }
 }

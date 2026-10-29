@@ -12,6 +12,9 @@
     {{ Session::get('data')}}
   </div>
   @endif
+  @if (!empty($documentReviewNotice))
+  <div class="alert alert-success">{{ $documentReviewNotice }}</div>
+  @endif
 
   <label style="font-size:24px;">Create Request</label>
 

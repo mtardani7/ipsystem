@@ -114,7 +114,7 @@
 							<select id='cat_id' name='cat_id' class='form-control' required>
 								<option value=''>- select -&nbsp;</option>
 								@foreach($cats as $cat)
-								<option value='{{$cat['CATID']}}'>{{$cat['CATID']}} &nbsp;</option>
+								<option value='{{$cat['CATID']}}' {{ old('cat_id') == $cat['CATID'] ? 'selected' : '' }}>{{$cat['CATID']}} &nbsp;</option>
 								@endforeach
 							</select>
 						</div>

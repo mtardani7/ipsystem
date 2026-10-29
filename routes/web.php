@@ -16,6 +16,12 @@ Route::get('/', 'HomeController@index')->name('home');;
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
+Route::get('/document-owner', 'DocumentOwnerController@index')->name('document_owner');
+Route::post('/document-owner/bulk', 'DocumentOwnerController@bulkUpdate')->name('document_owner.bulk');
+Route::post('/document-owner/single', 'DocumentOwnerController@updateOwner')->name('document_owner.single');
+Route::post('/document-owner/review', 'DocumentOwnerController@submitReview')->name('document_owner.review');
+Route::get('/document-owner/reminders/preview', 'DocumentOwnerController@previewReminders')->name('document_owner.reminders.preview');
+Route::post('/document-owner/reminders/send', 'DocumentOwnerController@sendReminders')->name('document_owner.reminders.send');
 Route::get('/home/{div}/{cat}', 'HomeController@viewlist')->name('home-viewlist');
 Route::post('/viewdoc', 'HomeController@viewdoc')->name('viewdoc');
 Route::get('/viewvideo', 'HomeController@viewvideo')->name('viewvideo');
@@ -39,7 +45,7 @@ Route::delete('/input_plant/{destroy}', 'PlantController@destroy')->middleware('
 Route::get('/input_list', 'MasterListController@index')->middleware('admin')->name('input_list');
 Route::post('/input_list', 'MasterListController@add')->middleware('admin');
 Route::get('/edit_list', 'MasterListController@edit')->middleware('admin');
-Route::post('/update_list', 'MasterListController@update')->middleware('admin');
+Route::post('/update_list', 'MasterListController@update')->middleware('auth');
 Route::get('/search_list', 'MasterListController@search')->middleware('admin')->name('search_list');
 Route::delete('/input_list', 'MasterListController@destroy')->middleware('admin')->name('list_delete');
 

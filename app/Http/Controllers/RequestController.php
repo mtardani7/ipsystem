@@ -12,16 +12,20 @@ use App\FormIT01;
 use App\ApprovalHirarki;
 use App\ApprovalHirarkiOther;
 use App\User;
+use App\UserLevel;
+use App\Masterlist;
 use DB;
 use File;
+use Auth;
 
 class RequestController extends Controller
 {
     //
     public function create()
     {
-
-      return view('request/create_req');
+      return view('request/create_req', [
+        'documentReviewNotice' => session('document_review_notice'),
+      ]);
     }
 
     public function create_form(Request $request)
@@ -30,6 +34,32 @@ class RequestController extends Controller
       $reqplant = $request->input('req_plant');
       $reqdept = $request->input('req_dept');
       $reqtype = $request->input('req_type');
+      $reviewRequestContext = session()->get('document_review_request_context');
+      if ($reviewRequestContext !== null) {
+        if (!Auth::check() || !is_array($reviewRequestContext)
+          || !isset($reviewRequestContext['document_id'], $reviewRequestContext['document_revision'], $reviewRequestContext['owner_id'])
+          || (int) Auth::user()->id !== (int) $reviewRequestContext['owner_id']) {
+          abort(403, 'Only the document owner may create a request from this NOK review.');
+        }
+
+        $reviewedDocument = Masterlist::where('DOCID', $reviewRequestContext['document_id'])
+          ->where('DOCREV', $reviewRequestContext['document_revision'])
+          ->whereIn('CATID', ['SOP', 'WI'])
+          ->where('DOCSTATUS', 'Active')
+          ->where('REVIEWED', 'NOK')
+          ->where('OWNER_ID', $reviewRequestContext['owner_id'])
+          ->first();
+        $requestOwner = User::find($reviewRequestContext['owner_id']);
+        $ownerLevel = UserLevel::where('userid', $reviewRequestContext['owner_id'])->first();
+        if (!$reviewedDocument || !$requestOwner || !$ownerLevel
+          || !is_string($ownerLevel->dept) || !is_string($ownerLevel->plant)) {
+          abort(403, 'The document owner request context is no longer valid.');
+        }
+
+        $reqby = $requestOwner->username;
+        $reqplant = $ownerLevel->plant;
+        $reqdept = $ownerLevel->dept;
+      }
       if ($reqtype == 'p4-no7')
         {
           $form = 'form_p4-no7';
@@ -91,7 +121,7 @@ class RequestController extends Controller
 
       }
       $p4 =  new Req();
-      $p4->date_request = DB::raw('NOW()');
+      $p4->date_request = DB::raw('CURRENT_TIMESTAMP');
       $p4->dept = $reqdept;
       $p4->plant = $reqplant;
       $p4->type = $form;
@@ -104,6 +134,9 @@ class RequestController extends Controller
       $p4->approval_mr = $approvalmr;
       $p4->session_id = session()->getId();
       $p4->save();
+      if ($reviewRequestContext !== null) {
+        session()->forget('document_review_request_context');
+      }
 
       $session_id = session()->getId();
       $request = Req::where('session_id','=',$session_id)->orderBy('id', 'desc')->first();

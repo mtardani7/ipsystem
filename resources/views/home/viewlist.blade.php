@@ -3,6 +3,13 @@
 @section('content')
 <div class="container">
 
+@if (Session::has('data'))
+<div class="alert alert-danger">{{ Session::get('data') }}</div>
+@endif
+@if (Session::has('success'))
+<div class="alert alert-success">{{ Session::get('success') }}</div>
+@endif
+
 <!-- class="table table-bordered" -->
 <table id="myTable" class="table table-bordered" width='100%' border='0' cellspacing='0' cellpadding='0'>
 			<thead>

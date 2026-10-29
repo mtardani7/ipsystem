@@ -13,4 +13,9 @@ class Masterlist extends Model
   //  protected $primaryKey = 'DOCID,DOCREV';
   //  protected $primaryKey = ['DOCID', 'DOCREV'];
     public $incrementing = false;
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'OWNER_ID', 'id');
+    }
 }

@@ -35,11 +35,11 @@ class HomeController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
 		$notes = \App\Note::orderBy('INPUTDATE')->paginate(3);
 		$dists = Distribution::orderBy('DIVDESC')->get();
-    	return view('home/home',compact('dists','notes'));
+        return view('home/home', compact('dists', 'notes'));
     }
 
 	public function viewlist($divid ,$cat)
@@ -77,7 +77,7 @@ class HomeController extends Controller
       }
       else {
 
-    	$lists = \App\Masterlist::where('DIVID',$divid)
+        $lists = \App\Masterlist::where('DIVID',$divid)
               ->where('CATID',$catid)
               ->orderBy('DOCID')
               ->orderBy('DOCREV')
@@ -110,7 +110,7 @@ class HomeController extends Controller
       }
       // echo '<pre>'; var_dump($buffer); die();
       // EoA by Michael - 26/07/2023
-      
+
 		return view('home/viewlist', compact('lists','divid','catid','get_masterlist','last_cert_id'));
     }
 

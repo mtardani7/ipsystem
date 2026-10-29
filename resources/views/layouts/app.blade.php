@@ -40,6 +40,16 @@
                     <ul class="nav navbar-nav">
                     </ul>
                     @else
+                    <?php
+                    $reviewDriver = DB::connection('mysql3')->getDriverName();
+                    $nextReviewDate = App\DocumentReviewCycle::nextReviewDateExpression($reviewDriver);
+                    $today = $reviewDriver === 'sqlite' ? "DATE('now')" : 'CURDATE()';
+                    $reviewDueCount = App\Masterlist::whereIn('CATID', ['SOP', 'WI'])
+                        ->where('DOCSTATUS', 'Active')
+                        ->where('OWNER_ID', Auth::user()->id)
+                        ->whereRaw('('.$nextReviewDate.') <= '.$today)
+                        ->count();
+                    ?>
                     @if (Auth::user()->custom=='superuser')
                     <ul class="nav navbar-nav">
                         <li class="@php if( preg_match( '/^home.*/', \Request::route()->getName())) echo " active"; @endphp"><a href="{{ route('home') }}">Home</a></li>
@@ -53,6 +63,7 @@
                                 <li><a href="{{ route('input_cat') }}">Input Category</a></li>
                                 <li><a href="{{ route('load_doc') }}" ;>Load Document</a></li>
                                 <li><a href="{{ route('input_list') }}">Input Masterlist</a></li>
+                                <li><a href="{{ route('document_owner') }}">Document Owner &amp; Review @if($reviewDueCount > 0)<span class="badge">{{$reviewDueCount}}</span>@endif</a></li>
                             </ul>
                         </li>
                         <li class="dropdown {{ (\Request::route()->getName() == 'user') ? 'active' : '' }}">
@@ -112,6 +123,7 @@
                                 <li><a href="{{ route('test_lfm') }}">Test LFM</a></li>
                             </ul>
                         </li>
+                        <li class="{{ (\Request::route()->getName() == 'document_owner') ? 'active' : '' }}"><a href="{{ route('document_owner') }}">Document Review @if($reviewDueCount > 0)<span class="badge">{{$reviewDueCount}}</span>@endif</a></li>
                         <li class="dropdown <?php //if (strpos(\Request::route()->getName(), 'history_req_view') !== true) echo "active"; 
                                             ?> {{ (\Request::route()->getName() == 'create_req' ) || (\Request::route()->getName() == 'create_req_form' )  || (\Request::route()->getName() == 'approval_req' ) || (\Request::route()->getName() == 'history_req' )  ? 'active' : '' }}">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Request <span class="caret"></span></a>
@@ -134,6 +146,7 @@
                     <ul class="nav navbar-nav">
                         <li class="@php if( preg_match( '/^home.*/', \Request::route()->getName())) echo " active"; @endphp"><a href="{{ route('home') }}">Home</a></li>
                         <li class="dropdown {{ (\Request::route()->getName() == 'input_plant' ) || (\Request::route()->getName() == 'input_div' ) || (\Request::route()->getName() == 'input_cat' ) || (\Request::route()->getName() == 'input_list' ) ? 'active' : '' }}">
+                        <li class="{{ (\Request::route()->getName() == 'document_owner') ? 'active' : '' }}"><a href="{{ route('document_owner') }}">Document Review @if($reviewDueCount > 0)<span class="badge">{{$reviewDueCount}}</span>@endif</a></li>
                         <li class="dropdown {{ (\Request::route()->getName() == 'create_req' ) || (\Request::route()->getName() == 'approval_req' ) || (\Request::route()->getName() == 'history_req' ) ? 'active' : '' }}">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Request <span class="caret"></span></a>
                             <ul class="dropdown-menu">
@@ -177,7 +190,7 @@
 
                             ->count();
                         $t_ch = App\Req::where('form_saved', 'yes')->where('status', 'waiting')->where('type', 'form_change-folder')->where('approval_final', $user)->whereNull('approval_final_date')->count();
-                        $t_notif =  $ids + $t_ch;
+                        $t_notif = $ids + $t_ch + $reviewDueCount;
                         ?>
                         <li><a href="{{ route('approval_req') }}">Approval <span class="badge">{{$t_notif}}</span></a></li>
                         @endif
