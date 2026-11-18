@@ -187,7 +187,7 @@ class DocumentOwnerController extends Controller
     public function bulkUpdate(Request $request)
     {
         if (!$this->canManageOwner()) {
-            abort(403, 'Only superusers may manage SOP/WI owners and revision dates.');
+            abort(403, 'Only superusers may manage SOP/WI owners.');
         }
 
         $action = $request->input('bulk_action');
@@ -199,19 +199,6 @@ class DocumentOwnerController extends Controller
                 $ownerId = $this->validatedNullableOwnerId($request->input('owner_id'));
                 $this->updateOwnerDocuments($documents, $ownerId);
                 return redirect()->back()->with('success', count($documents).' documents updated successfully.');
-            }
-
-            if ($action === 'revision_date') {
-                $revisionDate = $request->input('revision_date');
-                if (!is_string($revisionDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $revisionDate)) {
-                    throw new \InvalidArgumentException('Enter a valid revision date.');
-                }
-                $dateParts = explode('-', $revisionDate);
-                if (!checkdate((int) $dateParts[1], (int) $dateParts[2], (int) $dateParts[0])) {
-                    throw new \InvalidArgumentException('Enter a valid revision date.');
-                }
-                $this->updateSelectedDocuments($documents, ['REVISION_DATE' => $revisionDate]);
-                return redirect()->back()->with('success', count($documents).' revision date(s) saved.');
             }
 
             throw new \InvalidArgumentException('The requested bulk action is invalid.');
@@ -378,28 +365,6 @@ class DocumentOwnerController extends Controller
         }
 
         return $documents;
-    }
-
-    private function updateSelectedDocuments(array $documents, array $values, $reviewOnly = false)
-    {
-        DB::connection('mysql3')->transaction(function () use ($documents, $values, $reviewOnly) {
-            $query = $this->selectedDocumentsQuery($documents)->lockForUpdate();
-
-            if ($reviewOnly) {
-                $query->where('DOCSTATUS', 'Active')
-                    ->whereNotNull('REVISION_DATE')
-                    ->whereRaw('DATE_ADD(REVISION_DATE, INTERVAL 1 YEAR) <= CURDATE()');
-            }
-
-            if (count($query->get(['DOCID', 'DOCREV'])) !== count($documents)) {
-                $message = $reviewOnly
-                    ? 'A selected document is missing, not SOP/WI, inactive, or not due for review. No changes were saved.'
-                    : 'A selected document is missing or is not SOP/WI. No changes were saved.';
-                throw new \InvalidArgumentException($message);
-            }
-
-            $query->update($values);
-        });
     }
 
     private function validateOwnerDocumentSelection(array $documents)

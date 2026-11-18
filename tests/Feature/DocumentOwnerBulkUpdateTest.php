@@ -187,7 +187,7 @@ class DocumentOwnerBulkUpdateTest extends TestCase
         $this->assertNotContains('Approval <span class="badge">', $response->getContent());
     }
 
-    public function test_document_review_table_omits_revision_date_column_but_keeps_doc_revision()
+    public function test_document_review_table_shows_revision_and_review_dates()
     {
         $this->insertDocuments([
             ['DOCID' => 'SOP/05-IT/01', 'DOCREV' => '03 (18-07-2023)', 'CATID' => 'SOP'],
@@ -197,11 +197,13 @@ class DocumentOwnerBulkUpdateTest extends TestCase
         $response = $this->get('/document-owner');
 
         $response->assertStatus(200);
-        $this->assertNotContains('<th>Revision Date</th>', $response->getContent());
-        $this->assertContains('<th>Review Note</th>', $response->getContent());
+        $this->assertContains('<th>Revision Date</th>', $response->getContent());
+        $this->assertContains('<th>Last Review Date</th>', $response->getContent());
+        $this->assertContains('<th>Next Review Date</th>', $response->getContent());
+        $this->assertContains('<th>Review Notes</th>', $response->getContent());
         $this->assertContains('existing note', $response->getContent());
         $this->assertContains('<small>Rev 03 (18-07-2023)</small>', $response->getContent());
-        $this->assertContains('<button type="button" class="btn btn-default bulk-action-button" data-bulk-action="revision_date"', $response->getContent());
+        $this->assertNotContains('Set Revision Date', $response->getContent());
     }
 
     public function test_owner_sees_review_action_but_other_user_does_not()
@@ -386,6 +388,27 @@ class DocumentOwnerBulkUpdateTest extends TestCase
             \App\DocumentReviewCycle::nextReviewDate(null, null, '03 (18-07-2023)')->format('Y-m-d')
         );
         $this->assertNull(\App\DocumentReviewCycle::nextReviewDate(null, null, '03 (31-02-2023)'));
+    }
+
+    public function test_docrev_formats_are_validated_and_sql_matches_php()
+    {
+        $cycle = '\\App\\DocumentReviewCycle';
+        $this->assertEquals('2007-04-13', $cycle::revisionDate(null, '00 (13.04.2007)')->format('Y-m-d'));
+        $this->assertEquals('2015-10-30', $cycle::revisionDate(null, '00 (30-10-2015)')->format('Y-m-d'));
+        $this->assertNull($cycle::revisionDate(null, '00 (31.02.2023)'));
+        $this->assertNull($cycle::revisionDate('2020-01-01', '00 (31.02.2023)'));
+        $this->assertEquals('2015-10-30', $cycle::revisionDate('2000-01-01', '00 (30-10-2015)')->format('Y-m-d'));
+        foreach (['00 (13.04.2007)', '00 (30-10-2015)', '00 (31.02.2023)'] as $docrev) {
+            DB::connection('mysql3')->table('masterlist')->insert([
+                'DOCID' => 'SQL-DATE-'.md5($docrev), 'DOCREV' => $docrev, 'CATID' => 'WI',
+                'REVISION_DATE' => $docrev === '00 (31.02.2023)' ? '2020-01-01' : null,
+            ]);
+        }
+        $rows = DB::connection('mysql3')->table('masterlist')->where('DOCID', 'like', 'SQL-DATE-%')
+            ->select('DOCREV')->selectRaw($cycle::revisionDateExpression('sqlite').' AS PARSED')->get();
+        $this->assertEquals(['2007-04-13', '2015-10-30', null], array_map(function ($row) {
+            return $row->PARSED;
+        }, $rows->all()));
     }
 
     public function test_existing_docrev_date_enables_review_without_populating_revision_date()

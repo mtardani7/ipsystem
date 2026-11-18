@@ -142,7 +142,6 @@
 		<div class="bulk-actions">
 			<label class="checkbox-inline"><input type="checkbox" class="select-all-documents"> Select All on this page</label>
 			<button type="button" class="btn btn-primary bulk-action-button" data-bulk-action="owner" disabled>Set Owner</button>
-			<button type="button" class="btn btn-default bulk-action-button" data-bulk-action="revision_date" disabled>Set Revision Date</button>
 		</div>
 	</div>
 	@endif
@@ -151,7 +150,7 @@
 		<table class="table table-bordered table-hover document-table">
 			<thead><tr>
 				@if($canManageOwner)<th class="selection-column"><input type="checkbox" class="select-all-documents" aria-label="Select all current page"></th>@endif
-				<th>Doc ID</th><th>Description</th><th>Division</th><th>Category</th><th>Owner</th><th>Review</th><th>Review Note</th><th>Action</th>
+				<th>Doc ID</th><th>Description</th><th>Division</th><th>Category</th><th>Owner</th><th>Revision Date</th><th>Last Review Date</th><th>Next Review Date</th><th>Review Status</th><th>Review Notes</th><th>Action</th>
 			</tr></thead>
 			<tbody>
 				@forelse($documents as $document)
@@ -208,6 +207,9 @@
 						<span class="label label-default">Not Assigned</span>
 						@endif
 					</td>
+					<td>{{ $document->EFFECTIVE_REVISION_DATE ? date('d-m-Y', strtotime($document->EFFECTIVE_REVISION_DATE)) : '—' }}</td>
+					<td>{{ $document->REVIEWED_AT ? date('d-m-Y', strtotime($document->REVIEWED_AT)) : '—' }}</td>
+					<td>{{ $document->NEXT_REVIEW_DATE ? date('d-m-Y', strtotime($document->NEXT_REVIEW_DATE)) : '—' }}</td>
 					<td><span class="label {{ $reviewClass }}">{{ $reviewLabel }}</span></td>
 					<td class="review-note">{{ $document->REVIEW_NOTE ?: 'No review note' }}</td>
 					<td>
@@ -234,7 +236,7 @@
 					</td>
 				</tr>
 				@empty
-				<tr><td colspan="{{ $canManageOwner ? 8 : 7 }}" class="empty-state">
+				<tr><td colspan="{{ $canManageOwner ? 12 : 11 }}" class="empty-state">
 					@if(!$canManageOwner)
 					<strong>Tidak ada dokumen untuk direview.</strong><br>
 					Belum ada SOP/WI yang ditugaskan kepada Anda sebagai Document Owner.
@@ -277,10 +279,6 @@
 								</div>
 							</div>
 							<p class="help-block">Selected owner: <strong id="bulk-owner-selected">None</strong></p>
-						</div>
-						<div class="form-group action-revision-date">
-							<label for="bulk_revision_date">Revision Date</label>
-							<input type="date" id="bulk_revision_date" name="revision_date" class="form-control">
 						</div>
 					</div>
 					<div class="modal-footer">
@@ -407,7 +405,7 @@
 	.document-view-button { color:#333; }
 	.document-view-button:hover, .document-view-button:focus { color:#23527c; border-color:#adadad; background:#e6e6e6; }
 	.empty-state { padding:32px !important; color:#555; text-align:center; }
-	.action-owner, .action-revision-date { display:none; }
+	.action-owner { display:none; }
 	.single-owner-form { min-width:150px; }
 	.single-owner-form { position:relative; }
 	.owner-picker { padding:8px; border:1px solid #ccc; border-radius:3px; background:#fff; box-shadow:0 3px 9px rgba(0,0,0,.18); }
@@ -500,10 +498,9 @@
 		$('.bulk-action-button').on('click', function () {
 			selectedAction = $(this).data('bulk-action');
 			$('#bulk_action').val(selectedAction);
-			$('#bulkActionTitle').text(selectedAction === 'owner' ? 'Set Document Owner' : 'Set Revision Date');
-			$('#save-bulk-action').text(selectedAction === 'owner' ? 'Save Owner' : 'Save');
-			$('.action-owner, .action-revision-date').hide();
-			$('.action-' + (selectedAction === 'owner' ? 'owner' : 'revision-date')).show();
+			$('#bulkActionTitle').text('Set Document Owner');
+			$('#save-bulk-action').text('Save Owner');
+			$('.action-owner').show();
 			var inputContainer = $('#selected-document-inputs').empty();
 			$('.document-selection:checked').each(function () {
 				$('<input>').attr({type: 'hidden', name: 'selected_documents[]', value: $(this).val()}).appendTo(inputContainer);
@@ -518,8 +515,7 @@
 			$('#bulk_owner_id').val('').attr('data-owner-selected', 'false');
 			$('#bulk-owner-selected').text('None');
 			$('.bulk-owner-picker .owner-picker-search').val('').trigger('input');
-			$('#bulk_owner_id, #bulk_revision_date').prop('required', false);
-			if (selectedAction === 'revision_date') $('#bulk_revision_date').prop('required', true);
+			$('#bulk_owner_id').prop('required', false);
 			$('#bulkActionModal').modal('show');
 		});
 		$('#preview-review-reminders').on('click', function () {

@@ -8,16 +8,27 @@ class DocumentReviewCycle
 {
     public static function revisionDate($revisionDate, $docrev = null)
     {
-        if ($revisionDate !== null && $revisionDate !== '') {
-            return self::dateValue($revisionDate);
+        // DOCREV is authoritative when valid; REVISION_DATE remains a legacy fallback.
+        if (self::hasDocrevDate($docrev)) {
+            return self::docrevDate($docrev);
         }
-        if (!is_string($docrev) || !preg_match('/\((\d{2})-(\d{2})-(\d{4})\)$/', trim($docrev), $matches)) {
+        return self::dateValue($revisionDate);
+    }
+
+    private static function hasDocrevDate($docrev)
+    {
+        return is_string($docrev)
+            && preg_match('/\(\d{2}[.-]\d{2}[.-]\d{4}\)\s*$/', trim($docrev));
+    }
+
+    public static function docrevDate($docrev)
+    {
+        if (!is_string($docrev) || !preg_match('/\((\d{2})([.-])(\d{2})\2(\d{4})\)\s*$/', trim($docrev), $matches)) {
             return null;
         }
-
         $day = (int) $matches[1];
-        $month = (int) $matches[2];
-        $year = (int) $matches[3];
+        $month = (int) $matches[3];
+        $year = (int) $matches[4];
         return checkdate($month, $day, $year)
             ? Carbon::createFromDate($year, $month, $day)->startOfDay()
             : null;
@@ -91,17 +102,19 @@ class DocumentReviewCycle
     public static function revisionDateExpression($driver)
     {
         if ($driver === 'sqlite') {
-            $parsed = "substr(DOCREV, instr(DOCREV, '(') + 7, 4) || '-'"
-                ." || substr(DOCREV, instr(DOCREV, '(') + 4, 2) || '-'"
-                ." || substr(DOCREV, instr(DOCREV, '(') + 1, 2)";
-
-            return "CASE WHEN REVISION_DATE IS NOT NULL THEN DATE(REVISION_DATE)"
-                ." WHEN DOCREV GLOB '* ([0-3][0-9]-[01][0-9]-[0-9][0-9][0-9][0-9])'"
-                .' THEN DATE('.$parsed.') END';
+            $inside = "substr(DOCREV, instr(DOCREV, '(') + 1, 10)";
+            $parsed = "substr(".$inside.", 7, 4) || '-' || substr(".$inside.", 4, 2) || '-' || substr(".$inside.", 1, 2)";
+            $shape = "(DOCREV GLOB '* ([0-3][0-9]-[01][0-9]-[0-9][0-9][0-9][0-9])' OR DOCREV GLOB '* ([0-3][0-9].[01][0-9].[0-9][0-9][0-9][0-9])')";
+            $valid = $shape." AND strftime('%d-%m-%Y', ".$parsed.") = replace(".$inside.", '.', '-')";
+            return 'CASE WHEN '.$valid.' THEN DATE('.$parsed.') WHEN '.$shape.' THEN NULL WHEN REVISION_DATE IS NOT NULL THEN DATE(REVISION_DATE) END';
         }
-
-        return "CASE WHEN REVISION_DATE IS NOT NULL THEN DATE(REVISION_DATE)"
-            ." ELSE STR_TO_DATE(SUBSTRING_INDEX(SUBSTRING_INDEX(DOCREV, '(', -1), ')', 1), '%d-%m-%Y') END";
+        $inside = "SUBSTRING_INDEX(SUBSTRING_INDEX(DOCREV, '(', -1), ')', 1)";
+        $parsed = "STR_TO_DATE(REPLACE(".$inside.", '.', '-'), '%d-%m-%Y')";
+        $valid = "DATE_FORMAT(".$parsed.", '%d-%m-%Y') = REPLACE(".$inside.", '.', '-')"
+            .' AND DAY('.$parsed.') = CAST(SUBSTRING('.$inside.', 1, 2) AS UNSIGNED)'
+            .' AND MONTH('.$parsed.') = CAST(SUBSTRING('.$inside.', 4, 2) AS UNSIGNED)';
+        $shape = "DOCREV REGEXP '\\([0-9]{2}[.-][0-9]{2}[.-][0-9]{4}\\)$'";
+        return 'CASE WHEN '.$valid.' THEN DATE('.$parsed.') WHEN '.$shape.' THEN NULL WHEN REVISION_DATE IS NOT NULL THEN DATE(REVISION_DATE) END';
     }
 
     public static function baseDateExpression($driver)
@@ -136,6 +149,17 @@ class DocumentReviewCycle
 
     private static function dateValue($value)
     {
-        return $value === null || $value === '' ? null : Carbon::parse($value)->startOfDay();
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance($value)->startOfDay();
+        }
+        if (is_string($value) && preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:\s|$)/', $value, $matches)) {
+            return checkdate((int) $matches[2], (int) $matches[3], (int) $matches[1])
+                ? Carbon::createFromDate((int) $matches[1], (int) $matches[2], (int) $matches[3])->startOfDay()
+                : null;
+        }
+        return null;
     }
 }

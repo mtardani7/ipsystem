@@ -127,10 +127,6 @@ class MasterListController extends Controller
         if ($request->input('review_action') === 'review') {
             return $this->submitAnnualReview($request);
         }
-        if ($request->input('review_action') === 'revision_date') {
-            return $this->saveRevisionDate($request);
-        }
-
         if ($request->input('owner_action') === 'bulk') {
             return $this->updateOwners($request);
         }
@@ -278,48 +274,6 @@ class MasterListController extends Controller
         });
 
         return redirect()->back()->with('success', 'Annual review saved successfully.');
-    }
-
-    private function saveRevisionDate(Request $request)
-    {
-        if (!$this->canManageOwner()) {
-            abort(403, 'Only superusers may set the revision date.');
-        }
-
-        $docid = $request->input('revision_docid');
-        $docrev = $request->input('revision_docrev');
-        $revisionDate = $request->input('revision_date');
-        if (!is_string($docid) || $docid === '' || !is_string($docrev) || $docrev === '') {
-            return redirect()->back()->with('data', 'The selected document is invalid.');
-        }
-        if (!is_string($revisionDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $revisionDate)) {
-            return redirect()->back()->with('data', 'Enter a valid revision date.')->withInput();
-        }
-
-        $dateParts = explode('-', $revisionDate);
-        if (!checkdate((int) $dateParts[1], (int) $dateParts[2], (int) $dateParts[0])) {
-            return redirect()->back()->with('data', 'Enter a valid revision date.')->withInput();
-        }
-
-        DB::connection('mysql3')->transaction(function () use ($docid, $docrev, $revisionDate) {
-            $document = Masterlist::where('DOCID', $docid)
-                ->where('DOCREV', $docrev)
-                ->whereIn('CATID', ['SOP', 'WI'])
-                ->where('DOCSTATUS', 'Active')
-                ->lockForUpdate()
-                ->first();
-
-            if (!$document) {
-                abort(422, 'Only active SOP/WI documents can have a revision date set here.');
-            }
-
-            DB::connection('mysql3')->table('masterlist')
-                ->where('DOCID', $docid)
-                ->where('DOCREV', $docrev)
-                ->update(['REVISION_DATE' => $revisionDate]);
-        });
-
-        return redirect()->back()->with('success', 'Revision date saved successfully.');
     }
 
     private function updateOwners(Request $request)

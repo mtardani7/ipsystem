@@ -120,7 +120,7 @@ class DocumentReviewReminderService
                 $document->PREVIOUS_REMINDER_CYCLE = $previousCycle;
                 $document->REVISION_LABEL = $this->revisionLabel($document->DOCREV);
                 $document->REVISION_DATE_LABEL = $this->formatDate(
-                    $document->REVISION_DATE ?: $this->revisionDateFromDocrev($document->DOCREV)
+                    $document->EFFECTIVE_REVISION_DATE
                 );
                 $document->NEXT_REVIEW_DATE_LABEL = $this->formatDate($document->NEXT_REVIEW_DATE);
                 $groups[$ownerId]['documents'][] = $document;
@@ -140,6 +140,7 @@ class DocumentReviewReminderService
             ->whereRaw($this->nextReviewDate.' IS NOT NULL')
             ->whereRaw($this->nextReviewDate.' <= '.$this->today)
             ->select('masterlist.*', 'users.email as OWNER_EMAIL', 'users.name as OWNER_NAME')
+            ->selectRaw(DocumentReviewCycle::revisionDateExpression($this->driver).' AS EFFECTIVE_REVISION_DATE')
             ->selectRaw($this->nextReviewDate.' AS NEXT_REVIEW_DATE')
             ->orderBy('masterlist.OWNER_ID')
             ->orderBy('masterlist.DOCID')
@@ -240,23 +241,13 @@ class DocumentReviewReminderService
 
     private function revisionLabel($docrev)
     {
-        if (preg_match('/^(.*?)\s*\(\d{2}-\d{2}-\d{4}\)$/', trim((string) $docrev), $matches)) {
+        if (preg_match('/^(.*?)\s*\(\d{2}[.-]\d{2}[.-]\d{4}\)$/', trim((string) $docrev), $matches)) {
             $revision = trim($matches[1]);
         } else {
             $revision = trim((string) $docrev);
         }
 
         return stripos($revision, 'rev') === 0 ? $revision : 'Rev '.$revision;
-    }
-
-    private function revisionDateFromDocrev($docrev)
-    {
-        if (!preg_match('/\((\d{2}-\d{2}-\d{4})\)$/', trim((string) $docrev), $matches)) {
-            return null;
-        }
-
-        $date = \DateTime::createFromFormat('!d-m-Y', $matches[1]);
-        return $date && $date->format('d-m-Y') === $matches[1] ? $date->format('Y-m-d') : null;
     }
 
     private function formatDate($date)
