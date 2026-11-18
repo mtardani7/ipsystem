@@ -1,273 +1,79 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="{{ app()->getLocale() }}">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>Iso Paperless System</title>
-<link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-
-
-<!-- Menu -->
-<style>
-	.drop_menu { /* Background menu */
-	background: #555;
-	padding:100;
-	margin:1;
-	list-style-type: none;
-	height:40px;
-	}
-
-	.drop_menu li { float:left; }
-	.drop_menu li a {
-	padding: 10px 10px;     /* Space Menu */
-	display: block;
-	color:  #DDD;
-	text-decoration: none;
-	font:  14px arial, verdana, sans-serif;
-	font-size: 16px;
-	}
-
-	/* Submenu */
-	.drop_menu ul {
-		position: absolute;
-		left:-9999px;
-		top:-9999px;
-		list-style-type: none;
-	}
-
-	.drop_menu ul a {
-    	padding: 10px;
-		height: auto;
-		display: block;
-		white-space: nowrap;
-		float: none;
-		text-transform: none;
-	}
-	.drop_menu li:hover { position:relative; background: #B00 ; cursor: pointer; } /* Highlight Default #888*/
-	.drop_menu li:hover ul {     /* Posisi Sub menu */
-		left:0px;
-		top:30px;
-		background: #888;
-		padding:0px;
-		cursor: pointer;
-	}
-
-	.drop_menu li:hover ul li a {   /* Posisi Sub menu */
-		padding:5px;
-		display:block;
-		width: 250px;
-		text-indent:15px;
-		background-color:#888;
-		cursor: pointer;
-	}
-	.drop_menu li:hover ul li a:hover { background: #B00; cursor: pointer;}  /* default Color Highlight #005555 */
-	.Font_Memo article {
-		font-size: 14px;
-	}
-	.Font_Memo article {
-		font-size: 10px;
-	}
-	.Font_Memo article {
-		font-size: 12px;
-	}
-    </style>
-  <!-- Batas dropdown2 -->
-
-
-<!-- Menu Format -->
-<style>
-#header {
-    background-color:black;
-    color:white;
-    text-align:center;
-    padding:5px;
-}
-#nav {
-	 width:300px;
-/*    line-height:30px; */
-    background-color:#eeeeee;
-/*    height:300px; */
-/*    width:100px; */
-    float:left;
-/*    padding:5px;	       */
-}
-
-#navright {
-/*    line-height:30px; */
-    background-color:#eeeeee;
-/*    height:300px; */
-/*    width:100px; */
-    float: right;
-/*    padding:5px;	       */
-}
-
-#section {
-    width:500px;
-    float:left;
-    padding:10px;
-}
-
-#section1 {
-    width:200px;
-    float:left;
-    padding:10px;
-	text-align:left;
-}
-
-#footer {
-    background-color:#555;
-    color:white;
-    clear:both;
-
-    text-align:center;
-   padding:8px;
-}
-.Font_Header {
-	font-family: Verdana, Geneva, sans-serif;
-	font-size: 18px;
-	font-style: italic;
-	color: #888;
-}
-.a {
-	font-size: 24px;
-}
-.a {
-	color: #222;
-	font-size: 20px;
-}
-</style>
-
-
-<script>
-function layar() {
-var width=screen.availWidth;
-
-var height=screen.height;var cek=alert('Your Screen Resolution '+width+'px x '+height+'px');
-
-if(cek) {
-document.write("Your Screen Resolution "+width+"px x "+height+"px");
-}
-}
-</script>
-
-
-<script>
-function goBack() {
-    window.history.back()
-}
-</script>
-
-
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Document Viewer | IPSystem</title>
+	<link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+	<style>
+		* { box-sizing: border-box; }
+		html, body { min-height: 100%; margin: 0; }
+		body { background: #f3f5f7; color: #252a30; font: 14px/1.5 Arial, sans-serif; }
+		.viewer { width: 100%; max-width: 1600px; margin: 0 auto; padding: 20px; }
+		.viewer-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+		.viewer-heading { min-width: 0; }
+		.viewer-heading h1 { margin: 0; font-size: 22px; line-height: 1.25; overflow-wrap: anywhere; }
+		.viewer-heading p { margin: 4px 0 0; color: #626b75; }
+		.viewer-actions { display: flex; flex: 0 0 auto; gap: 8px; }
+		.viewer-button { display: inline-block; padding: 9px 13px; border: 1px solid #c7cdd3; border-radius: 4px; background: #fff; color: #252a30; font: inherit; text-decoration: none; cursor: pointer; }
+		.viewer-button:hover, .viewer-button:focus { background: #e9edf1; text-decoration: none; }
+		.viewer-button-primary { border-color: #1769aa; background: #1769aa; color: #fff; }
+		.viewer-button-primary:hover, .viewer-button-primary:focus { background: #125787; color: #fff; }
+		.document-info { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; padding: 14px 16px; border: 1px solid #d9dee3; border-radius: 5px; background: #fff; }
+		.document-info div { min-width: 0; }
+		.document-info dt { color: #626b75; font-size: 12px; font-weight: normal; }
+		.document-info dd { margin: 2px 0 0; overflow-wrap: anywhere; font-weight: 600; }
+		.viewer-error { margin: 0 0 12px; padding: 10px 12px; border: 1px solid #e7c7a2; border-radius: 4px; background: #fff8ed; color: #704b20; overflow-wrap: anywhere; }
+		.pdf-frame { display: block; width: 100%; height: 76vh; max-height: 1000px; min-height: 520px; border: 1px solid #cbd1d7; border-radius: 4px; background: #dfe3e7; }
+		.viewer-footer { padding: 14px 0 2px; color: #68717a; text-align: center; font-size: 12px; }
+		@media (max-width: 767px) {
+			.viewer { padding: 12px; }
+			.viewer-header { align-items: flex-start; flex-direction: column; gap: 12px; }
+			.viewer-heading h1 { font-size: 19px; }
+			.viewer-actions { width: 100%; }
+			.viewer-button { flex: 1; text-align: center; }
+			.document-info { grid-template-columns: minmax(0, 1fr); gap: 9px; padding: 12px; }
+			.pdf-frame { height: 72vh; min-height: 360px; }
+		}
+		@media (max-width: 380px) {
+			.viewer { padding: 8px; }
+			.viewer-actions { flex-direction: column; }
+			.viewer-button { width: 100%; }
+			.pdf-frame { height: 70vh; min-height: 320px; }
+		}
+	</style>
 </head>
 <body>
+	<main class="viewer">
+		<header class="viewer-header">
+			<div class="viewer-heading">
+				<h1>{{ $dist->DOCDESC }}</h1>
+				<p>Document viewer</p>
+			</div>
+			<div class="viewer-actions">
+				<button class="viewer-button" type="button" onclick="window.history.back()">Back</button>
+				<a class="viewer-button viewer-button-primary" href="{{ URL::to('/') }}/public/files/1/{{ $dist->PDFPRINT }}" download>Download PDF</a>
+			</div>
+		</header>
 
-	<body>
-		<asp:panel id="pnlPdfHrBook" runat="server" backcolor="White" xmlns:asp="#unknown">
-<p>
-<div align="left">
+		<dl class="document-info">
+			<div><dt>Document ID</dt><dd>{{ $dist->DOCID }}</dd></div>
+			<div><dt>Revision</dt><dd>{{ $dist->DOCREV }}</dd></div>
+			<div><dt>Document name</dt><dd>{{ $dist->DOCDESC }}</dd></div>
+		</dl>
 
-
-<table width="1000" border="0">
-  <tr>
-    <td>
-
-    <div id = "nav"; style="padding:0px; overflow:auto; width:250px; height:620px; border:0px solid white; font-size: 12px; font-family: Verdana, Geneva, sans-serif;" align="left" >
-
-  <div class="drop">
-   <ul class="drop_menu">
-	  <li></li>
-	  <li></li>
-		  <li><a onclick="window.history.back()">Back</a></li>
-<!--      <li><a href="../IPSystem/ViewMasterlist.php">Back</a></li> -->
-    </ul>
-  </div>
-
-  <table width="250" border="0">
-        <tr>
-          <td width="76"><font color="BLACK" face="Arial" size="2">Doc ID</font></td>
-          <td width="10">:</td>
-          <td width="324"><font color="BLACK" face="Geneva, Arial" size="2">{{ $dist->DOCID }}</font></td>
-        </tr>
-        <tr>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-          <td>&nbsp;</td>
-        </tr>
-        <tr>
-          <td>Revision</td>
-          <td>:</td>
-          <td><font color="BLACK" face="Geneva, Arial" size="2">{{ $dist->DOCREV }}</font></td>
-        </tr>
-        <tr>
-          <td colspan="3">&nbsp;</td>
-        </tr>
-        <tr>
-          <td>Doc Name </td>
-          <td>:</td>
-          <td><font color="BLACK" face="Geneva, Arial" size="2">{{ $dist->DOCDESC }}</font></td>
-        </tr>
-
-		<tr>
-          <td>Download PDF </td>
-          <td>:</td>
-          <td><a href="{{URL::to('/')}}/public/files/1/{{ $dist->PDFPRINT }}" download><button>Download PDF </button></a></td>
-        </tr>
-
-  </table>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-  <p>&nbsp;</p>
-
-
-
-<img src="images/gb-company-logo2.png" alt="" width="69" height="40" /><span class="Font_Header"> <span class="a">View Documents</span></span></div>
-
-&nbsp;</td>
-    <td>
-
-<table width="1090" border="0">
-  <tr>
-    <td height="38">
-	@if (Session()->has('not found'))
-	Document not found on server ->
-	{{$document_name}}
-	@endif
-
-		@if ($view_type == 'uncontrolled')
-    <embed src="{{URL::to('/')}}/public/files/1/{{ $dist->PDFPRINT }}"   width='1070'  height='600'type='application/pdf' >
-		@elseif ($view_type == 'original')
-		<embed src="{{URL::to('/')}}/public/files/1/{{ $dist->PDFVIEW }}"   width='1070'  height='600'type='application/pdf' >
+		@if (Session()->has('not found'))
+			<div class="viewer-error" role="alert">Document not found on server: {{ $document_name }}</div>
 		@endif
 
-</td>
-  </tr>
-</table>
+		@if ($view_type == 'uncontrolled')
+			<embed class="pdf-frame" src="{{ URL::to('/') }}/public/files/1/{{ $dist->PDFPRINT }}" type="application/pdf" aria-label="PDF document viewer">
+		@elseif ($view_type == 'original')
+			<embed class="pdf-frame" src="{{ URL::to('/') }}/public/files/1/{{ $dist->PDFVIEW }}" type="application/pdf" aria-label="Original PDF document viewer">
+		@endif
 
-  </td>
-  </tr>
-</table>
-
-
-
-<table width="1348" border="0">
-  <tr>
-    <td>
-    <div id="footer"> Copyright &copy; <?php echo date("Y"); ?> PT. Rapid Plast Indonesia </div>
-    </td>
-  </tr>
-</table>
-
-
-
-
+		<footer class="viewer-footer">Copyright &copy; {{ date('Y') }} PT. Rapid Plast Indonesia</footer>
+	</main>
 </body>
 </html>
